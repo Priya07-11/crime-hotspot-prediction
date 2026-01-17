@@ -21,3 +21,5 @@ Thumbs.db
 
 # === Logs ===
 *.log
+
+data/raw/chicago_crimes.csv
