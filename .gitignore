@@ -1,0 +1,23 @@
+# Python virtual environment
+venv/
+
+# === Outputs / generated data ===
+outputs/
+data/processed/
+
+# === Spark / Hadoop ===
+spark-warehouse/
+*.crc
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+
+# === Logs ===
+*.log
