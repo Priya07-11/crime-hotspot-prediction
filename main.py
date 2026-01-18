@@ -1,58 +1,74 @@
 # main.py
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_timestamp
+from src.config import RAW_DATA_PATH
 from src.spark_analysis import analyze_patterns
-from src.config import RAW_DATA_PATH, PROCESSED_DATA_PATH
+from src.feature_engineering import create_features
+from src.train_model import train_hotspot_model
+from src.python_visualization import generate_heatmap_python
 import os
 
-def load_data(spark, path):
-    """Load raw CSV data and fix date parsing."""
-    df = spark.read.csv(path, header=True, inferSchema=True)
-
-    # Convert 'date' column to timestamp safely
-    df = df.withColumn("date", to_timestamp(col("date"), "MM/dd/yyyy hh:mm:ss a"))
-
-    # Drop rows with malformed or null dates
-    df = df.dropna(subset=["date"])
-
-    # Normalize column names: lowercase + underscores
-    df = df.toDF(*[c.lower().replace(" ", "_") for c in df.columns])
-
-    return df
-
-def save_data(df, path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    df.coalesce(1).write.mode("overwrite").csv(path, header=True)
-    print(f"Processed data saved at {path}")
 
 def main():
     print("===== Starting Chicago Crime Hotspot Pipeline =====")
 
-    # ===== Step 1: Initialize Spark =====
-    spark = SparkSession.builder \
-        .appName("ChicagoCrimeHotspot") \
-        .config("spark.hadoop.io.native.lib.available", "false") \
-        .config("spark.hadoop.fs.file.impl.disable.cache", "true") \
+    #  Windows-safe temp directories
+    os.makedirs("C:/temp/spark-warehouse", exist_ok=True)
+    os.makedirs("C:/temp/spark-local", exist_ok=True)
+
+    spark = (
+        SparkSession.builder
+        .appName("ChicagoCrimeHotspot")
+        .master("local[*]")
+
+        #  CRITICAL WINDOWS FIXES
+        .config("spark.sql.warehouse.dir", "file:///C:/temp/spark-warehouse")
+        .config("spark.local.dir", "C:/temp/spark-local")
+        .config("spark.hadoop.io.native.lib.available", "false")
+        .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem")
+        .config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
+        .config("spark.hadoop.mapreduce.fileoutputcommitter.cleanup-failures.ignored", "true")
+        .config("spark.sql.execution.arrow.pyspark.enabled", "false")
+
         .getOrCreate()
+    )
 
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
+    print("✔ Spark session created")
 
-    # ===== Step 2: Load raw data =====
-    print("\n[Step 1] Ingesting data...")
-    df = load_data(spark, RAW_DATA_PATH)
-    print(f"Initial rows: {df.count()} | Columns: {len(df.columns)}")
+    # ---------------- LOAD DATA ----------------
+    df = spark.read.csv(RAW_DATA_PATH, header=True, inferSchema=True)
 
-    print("→ Analysis reports will still be generated")
+    # Normalize column names
+    for c in df.columns:
+        df = df.withColumnRenamed(c, c.lower().replace(" ", "_"))
 
-    # ===== Step 4: Analyze patterns =====
-    print("\n[Step 2] Analyzing patterns...")
-    try:
-        analyze_patterns(df)
-    except Exception as e:
-        print(f"Error during analysis: {e}")
+    df = df.dropna(subset=["latitude", "longitude", "primary_type"])
+    print(f"✔ Data loaded: {df.count()} rows")
 
-    print("\n===== Pipeline finished =====")
+    # ---------------- ANALYSIS ----------------
+    analyze_patterns(df)
+
+    # ---------------- FEATURE ENGINEERING ----------------
+    features_df = create_features(df)
+
+    # ---------------- MODEL TRAINING (SPARK) ----------------
+    clustered_df = train_hotspot_model(features_df)
+
+    # ---------------- VISUALIZATION (PYTHON) ----------------
+    print("✔ Converting Spark DataFrame to Pandas for visualization")
+
+    pdf = (
+        clustered_df
+        .limit(50000)   #  Memory-safe
+        .toPandas()
+    )
+
+    generate_heatmap_python(pdf)
+
+    # ---------------- STOP SPARK ----------------
     spark.stop()
+    print("===== Pipeline Completed Successfully =====")
+
 
 if __name__ == "__main__":
     main()
