@@ -24,32 +24,6 @@ Apache Spark is used for scalable data processing, while Python is used for visu
 - Folium
 - Git & GitHub
 
-##  Project Structure
-
-crime-hotspot-prediction/
-│
-├── data/
-│ └── raw/
-│ └── chicago_crimes.csv
-│
-├── src/
-│ ├── config.py
-│ ├── spark_analysis.py
-│ ├── feature_engineering.py
-│ ├── train_model.py
-│ └── python_visualization.py
-│
-├── outputs/
-│ ├── models/
-│ ├── maps/
-│ │ └── crime_hotspot_heatmap.html
-│ └── reports/
-│
-├── main.py
-├── README.md
-└── requirements.txt
-
-
 ## Workflow
 
 1. Load raw crime data using Spark  
@@ -99,6 +73,7 @@ After updating README:
 git add README.md
 git commit -m "Updated README with dataset information"
 git push origin main
+
 
 
 
