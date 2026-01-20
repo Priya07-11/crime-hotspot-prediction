@@ -50,7 +50,7 @@ crime-hotspot-prediction/
 └── requirements.txt
 
 
-## 🔄 Workflow
+## Workflow
 
 1. Load raw crime data using Spark  
 2. Clean and engineer features  
@@ -85,9 +85,9 @@ Open the HTML file in any browser to view the visualization.
 
 Chicago Crime Dataset (publicly available):
 
-🔗 https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2
+https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2
 
-The dataset contains reported crime incidents in Chicago with location, time, and crime type details.
+The dataset contains reported crime incidents in Chicago with location, time and crime type details.
 
 
 ---
@@ -99,5 +99,6 @@ After updating README:
 git add README.md
 git commit -m "Updated README with dataset information"
 git push origin main
+
 
 
